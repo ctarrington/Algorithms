@@ -37,23 +37,43 @@ function createBinaryTree()
         function getLeftChild() { return leftChild; }
         function getRightChild() { return rightChild; }
 
+        function preorderTraversal(cb)
+        {
+            cb(value);
+
+            if (leftChild != null) { leftChild.preorderTraversal(cb); }
+            if (rightChild != null) { rightChild.preorderTraversal(cb); }
+        }
+
+        function inorderTraversal(cb)
+        {
+            if (leftChild != null) { leftChild.inorderTraversal(cb); }
+            cb(value);
+            if (rightChild != null) { rightChild.inorderTraversal(cb); }
+        }
+
         return {
             value: getOrSetValue,
             leftValue: getOrSetLeftValue,
             rightValue: getOrSetRightValue,
             leftChild: getLeftChild,
-            rightChild: getRightChild
+            rightChild: getRightChild,
+            preorderTraversal: preorderTraversal,
+            inorderTraversal: inorderTraversal
         };
     }
 
     function getRootNode() { return rootNode; }
 
-
+    function preorderTraversal(cb) { rootNode.preorderTraversal(cb); }
+    function inorderTraversal(cb) { rootNode.inorderTraversal(cb); }
 
 
     // exposed object
     return {
-        rootNode: getRootNode
+        rootNode: getRootNode,
+        preorderTraversal: preorderTraversal,
+        inorderTraversal: inorderTraversal
     };
 
 }

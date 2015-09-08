@@ -34,3 +34,55 @@ describe("Simple Binary Tree", function() {
     });
 
 });
+
+describe("Preorder traversal of a Binary Tree", function() {
+
+    it("should traverse left children first", function () {
+        var tree = createBinaryTree();
+        var rootNode = tree.rootNode();
+        rootNode.value('D');
+        rootNode.leftValue('B');
+        rootNode.rightValue('E');
+
+        var bNode = rootNode.leftChild();
+        bNode.leftValue('A');
+        bNode.rightValue('C');
+
+        var values = [];
+        function visitorCallback(value) {
+            values.push(value);
+        }
+
+        tree.preorderTraversal(visitorCallback);
+        var list = values.join(',');
+        expect(list).toBe('D,B,A,C,E');
+
+    });
+
+});
+
+describe("Inorder traversal of a Binary Tree", function() {
+
+    it("should traverse in sort order", function () {
+        var tree = createBinaryTree();
+        var rootNode = tree.rootNode();
+        rootNode.value('D');
+        rootNode.leftValue('B');
+        rootNode.rightValue('E');
+
+        var bNode = rootNode.leftChild();
+        bNode.leftValue('A');
+        bNode.rightValue('C');
+
+        var values = [];
+        function visitorCallback(value) {
+            values.push(value);
+        }
+
+        tree.inorderTraversal(visitorCallback);
+        var list = values.join(',');
+        expect(list).toBe('A,B,C,D,E');
+
+    });
+
+});
