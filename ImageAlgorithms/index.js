@@ -1,54 +1,86 @@
 var Jimp = require("jimp");
 
-// linear rescale
-// scale down and back up results in artifacts
-function createLinearRescaleFunctions(newMin, newMax)
+function gsPointOperation(bitmap, operation, region)
 {
-    var extremes = { min: 255, max: 0 };
+    if (!region) { region = {x:0, y:0, width: bitmap.width, height: bitmap.height}; }
 
-    var measure = function(x, y, idx) {
-        var red = this.bitmap.data[idx];
+    for (var x = region.x; x < region.x+region.width; x++)
+    {
+        for (var y = region.y; y < region.y+region.height; y++)
+        {
+            var index_r = y*bitmap.width*4 + x*4;
+            var red = bitmap.data[index_r];
 
-        extremes.min = Math.min(extremes.min, red);
-        extremes.max = Math.max(extremes.max, red);
+            var newValue = operation(red);
+
+            bitmap.data[index_r] = bitmap.data[index_r+1] = bitmap.data[index_r+2] = newValue;
+        }
     }
-
-    var rescale = function (x, y, idx) {
-        var red = this.bitmap.data[idx];
-
-
-        var newValue = newMin+(newMax-newMin)*(red - extremes.min)/(extremes.max-extremes.min);
-        this.bitmap.data[idx] = newValue;
-        this.bitmap.data[idx + 1] = newValue;
-        this.bitmap.data[idx + 2] = newValue;
-    }
-
-    return {measure: measure, rescale: rescale};
 }
 
-function removeBlue(x, y, idx)
+function gsPointMeasurement(bitmap, measurement, region)
 {
-    var red = this.bitmap.data[idx];
-    var green = this.bitmap.data[idx + 1];
-    var blue = this.bitmap.data[idx + 2];
+    if (!region) { region = {x:0, y:0, width: bitmap.width, height: bitmap.height}; }
 
-    if (blue > 150 && blue > red && blue > green)
+    for (var x = region.x; x < region.x+region.width; x++)
     {
-        this.bitmap.data[idx + 3] = 0;
+        for (var y = region.y; y < region.y+region.height; y++)
+        {
+            var index_r = y*bitmap.width*4 + x*4;
+            var red = bitmap.data[index_r];
+
+            measurement.process(red);
+        }
     }
+
+    return measurement.result();
+}
+
+function createExtremeFinder()
+{
+    var extremes = {min: 255, max: 0};
+
+    var measurementFunction = {
+        process: function(intensity) {
+            extremes.min = Math.min(extremes.min, intensity);
+            extremes.max = Math.max(extremes.max, intensity);
+        },
+        result: function() { return extremes; }
+    };
+
+    return measurementFunction;
+}
+
+function createGsLinearRescaleFunction(oldRange, newRange)
+{
+    var lrf = function (intensity) {
+        intensity = Math.max(intensity, oldRange.min);
+        intensity = Math.min(intensity, oldRange.max);
+
+        var newValue = newRange.min+(newRange.max-newRange.min)*(intensity - oldRange.min)/(oldRange.max-oldRange.min);
+        return newValue;
+    }
+
+    return lrf;
 }
 
 Jimp.read("landscape.jpg", function (err, image) {
     if (err) throw err;
 
-    var rescaleDownFunctions = createLinearRescaleFunctions(0, 25);
-    var rescaleUpFunctions = createLinearRescaleFunctions(0, 255);
+    var bitmap = image.bitmap;
+    var rightTwoThirds = {x: bitmap.width/3, y: 0, width: 2*bitmap.width/3, height: bitmap.height  };
+    var rightOneThird = {x: 2*bitmap.width/3, y: 0, width: bitmap.width/3, height: bitmap.height  };
 
-    image
-        .greyscale()
-        .scan(1*image.bitmap.width/3, 0, 2*image.bitmap.width/3, image.bitmap.height, rescaleDownFunctions.measure)
-        .scan(1*image.bitmap.width/3, 0, 2*image.bitmap.width/3, image.bitmap.height, rescaleDownFunctions.rescale)
-        .scan(2*image.bitmap.width/3, 0, 1*image.bitmap.width/3, image.bitmap.height, rescaleUpFunctions.measure)
-        .scan(2*image.bitmap.width/3, 0, 1*image.bitmap.width/3, image.bitmap.height, rescaleUpFunctions.rescale)
-        .write("landscape-modified.png");
+    var darken = createGsLinearRescaleFunction({min:0, max:255}, {min:0, max:30});
+    image.greyscale();
+    gsPointOperation(bitmap, darken, rightTwoThirds);
+
+    var extremeFinder = createExtremeFinder();
+    var extremes = gsPointMeasurement(bitmap, extremeFinder, rightOneThird);
+    var lighten = createGsLinearRescaleFunction(extremes, {min:0, max:255});
+    gsPointOperation(bitmap, lighten, rightOneThird);
+    // will result in striations
+
+
+    image.write("landscape-modified.png");
 });
