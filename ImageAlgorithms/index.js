@@ -142,48 +142,46 @@ function fillFromDistribution(bitmap, startX, height, distribution)
 
 function gsFillImageFromHistogram(bitmap, histogram)
 {
-    fillFromDistribution(bitmap, 5, 256, histogram.pdf);
+    fillFromDistribution(bitmap, 5,      256, histogram.pdf);
     fillFromDistribution(bitmap, 256+10, 256, histogram.cdf);
+}
+
+function jimpWriteHistogramToFile(histogram, filename)
+{
+    var histogramImage = new Jimp(256*2+15, 256, 0xFFFFFFFF);
+    gsFillImageFromHistogram(histogramImage.bitmap, histogram);
+    histogramImage.write(filename);
 }
 
 Jimp.read("landscape.jpg", function (err, image) {
     if (err) throw err;
 
+    image.greyscale();
     var bitmap = image.bitmap;
 
+    image.write("out/original.png");
+
     var histogramOfOriginal = createHistogram(bitmap);
-    var originalHistogramImage = new Jimp(256*2+15, 256, 0xFFFFFFFF);
-    gsFillImageFromHistogram(originalHistogramImage.bitmap, histogramOfOriginal);
-    originalHistogramImage.write("landscape-original-histogram.png");
+    jimpWriteHistogramToFile(histogramOfOriginal, 'out/original-histogram.png');
 
-    var rightTwoThirds = {x: bitmap.width/3, y: 0, width: 2*bitmap.width/3, height: bitmap.height  };
-    var rightOneThird = {x: 2*bitmap.width/3, y: 0, width: bitmap.width/3, height: bitmap.height  };
-
-    var darken = createGsLinearRescaleFunction({min:0, max:255}, {min:0, max:35});
-    image.greyscale();
-    gsPointOperation(bitmap, darken, rightTwoThirds);
-
-    var histogramOfDark = createHistogram(bitmap, rightOneThird);
-
-    var darkHistogramImage = new Jimp(256*2+15, 256, 0xFFFFFFFF);
-    gsFillImageFromHistogram(darkHistogramImage.bitmap, histogramOfDark);
-    darkHistogramImage.write("landscape-dark-histogram.png");
+    var darken = createGsLinearRescaleFunction({min:0, max:255}, {min:0, max:40});
+    gsPointOperation(bitmap, darken);
+    image.write("out/dark.png");
 
 
-    //var lighten = createGsLinearRescaleFunction({min: histogramOfDark.min, max: histogramOfDark.max}, {min:0, max:255});
+    var histogramOfDark = createHistogram(bitmap);
+    jimpWriteHistogramToFile(histogramOfDark, 'out/dark-histogram.png');
 
     var leftStop = histogramOfDark.intensityOfCumulativeFrequency(0.001);
     var rightStop = histogramOfDark.intensityOfCumulativeFrequency(0.90);
-
     console.log('leftStop = '+leftStop+ ' rightStop = '+rightStop);
+
     var lighten = createGsLinearRescaleFunction({min: leftStop, max: rightStop}, {min:0, max:255});
-    gsPointOperation(bitmap, lighten, rightOneThird);
-
-    var histogramOfLightened = createHistogram(bitmap, rightOneThird);
-    console.dir(histogramOfLightened.pdf);
+    gsPointOperation(bitmap, lighten);
+    image.write("out/lightened.png");
 
 
+    var histogramOfLightened = createHistogram(bitmap);
+    jimpWriteHistogramToFile(histogramOfLightened, 'out/lightened-histogram.png');
 
-
-    image.write("landscape-modified.png");
 });
