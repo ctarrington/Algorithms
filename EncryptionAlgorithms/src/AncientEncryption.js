@@ -16,16 +16,25 @@ function createTranspositionCipher(cipherColumns, padCharacter)
         return transposed;
     }
 
-    function encrypt(plaintext, pad)
+    function pad(text, blockLength)
     {
-        var hanging = plaintext.length%cipherColumns;
+        var paddedText = text;
+
+        var hanging = text.length%blockLength;
         if (hanging > 0) {
-            var pad = cipherColumns-hanging;
-            for (var pad_ctr=0; pad_ctr<pad;pad_ctr++)
+            var padLength = blockLength-hanging;
+            for (var pad_ctr=0; pad_ctr<padLength;pad_ctr++)
             {
-                plaintext = plaintext+padCharacter;
+                paddedText = paddedText+padCharacter;
             }
         }
+
+        return paddedText;
+    }
+
+    function encrypt(plaintext)
+    {
+        plaintext = pad(plaintext, cipherColumns);
         var columns = cipherColumns;
         var rows = plaintext.length / cipherColumns;
         return transpose(plaintext, rows, columns);
