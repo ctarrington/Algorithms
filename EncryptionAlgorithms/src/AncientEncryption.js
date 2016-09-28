@@ -58,83 +58,74 @@ function createRowColumnTranspositionCipher(cipherColumns, padCharacter)
 
 }
 
-function convertStringKeyToNumbers(keyString)
-{
-    var columns = [];
-    for (var col_ctr=0; col_ctr<keyString.length;col_ctr++)
-    {
-        columns.push({originalIndex: col_ctr, keyLetter: keyString.substring(col_ctr,col_ctr+1)});
+function compareByKeyLetter(a,b) {
+    if (a.keyLetter > b.keyLetter) {
+        return 1;
     }
-
-    columns.sort(function compare(a,b) {
-        if (a.keyLetter > b.keyLetter) {
-            return 1;
-        }
-        if (a.keyLetter < b.keyLetter) {
-            return -1;
-        }
-        return 0;
-    });
-
-    var ordering = [];
-    var unique_values = {};
-    for (var col_ctr=0; col_ctr<keyString.length;col_ctr++)
-    {
-        var originalIndex = columns[col_ctr].originalIndex;
-        ordering.push(originalIndex);
-
-        var originalValue = columns[col_ctr].keyLetter;
-        unique_values[originalValue] = 1;
+    if (a.keyLetter < b.keyLetter) {
+        return -1;
     }
-
-    if (Object.keys(unique_values).length === keyString.length) { return ordering; }
-
-    return null;
+    return 0;
 }
+
+
 
 function createColumnTranspositionCipher(key, padCharacter)
 {
+    var columnIndexes = [];
+    var reverseColumnIndexes = [];
+
+    function convertStringKeyToNumbers()
+    {
+        var columns = [];
+        for (var col_ctr=0; col_ctr<key.length;col_ctr++)
+        {
+            columns.push({originalIndex: col_ctr, keyLetter: key.substring(col_ctr,col_ctr+1)});
+        }
+
+        columns.sort(compareByKeyLetter);
+
+        var unique_values = {};
+        for (var col_ctr=0; col_ctr<key.length;col_ctr++)
+        {
+            var originalIndex = columns[col_ctr].originalIndex;
+            columnIndexes[col_ctr] = originalIndex;
+            reverseColumnIndexes[originalIndex] = col_ctr;
+        }
+    }
+
+    function transpose(original, indexes)
+    {
+        var columns = indexes.length;
+        var rows = original.length / columns;
+
+        var transposed = '';
+        for (var row_ctr=0; row_ctr<rows;row_ctr++)
+        {
+            for (var col_ctr=0; col_ctr<columns; col_ctr++)
+            {
+                var index = row_ctr*columns+indexes[col_ctr];
+                transposed = transposed + original.substring(index, index+1);
+            }
+        }
+
+        return transposed;
+    }
+
     function encrypt(plaintext)
     {
         plaintext = pad(plaintext, key.length, padCharacter);
-        var columnIndexes = convertStringKeyToNumbers(key);
-
-        var columns = key.length;
-        var rows = plaintext.length / columns;
-
-        var encrypted = '';
-        for (var row_ctr=0; row_ctr<rows;row_ctr++)
-        {
-            for (var col_ctr=0; col_ctr<columns; col_ctr++)
-            {
-                var index = row_ctr*columns+columnIndexes[col_ctr];
-                encrypted = encrypted + plaintext.substring(index, index+1);
-            }
-        }
-
-        return encrypted;
+        return transpose(plaintext, columnIndexes);
     }
 
-    function decrypt(plaintext)
+    function decrypt(ciphertext)
     {
-        plaintext = pad(plaintext, key.length, padCharacter);
-        var columnIndexes = convertStringKeyToNumbers(key);
-
-        var columns = key.length;
-        var rows = plaintext.length / columns;
-
-        var encrypted = '';
-        for (var row_ctr=0; row_ctr<rows;row_ctr++)
-        {
-            for (var col_ctr=0; col_ctr<columns; col_ctr++)
-            {
-                var index = row_ctr*columns+columnIndexes[col_ctr];
-                encrypted = encrypted + plaintext.substring(index, index+1);
-            }
-        }
-
-        return encrypted;
+        return transpose(ciphertext, reverseColumnIndexes);
     }
+
+    convertStringKeyToNumbers();
+    console.log('key = '+key+', columnIndexes = '+columnIndexes.join(','));
+    console.log('key = '+key+', reverseColumnIndexes = '+reverseColumnIndexes.join(','));
 
     return {
         encrypt: encrypt,

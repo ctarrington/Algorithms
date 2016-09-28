@@ -21,31 +21,7 @@ describe("Row/Column Transposition Cipher", function() {
     });
 });
 
-describe("String key to numbers", function() {
-
-    it("should produce the correct numbers when there are no repeats", function () {
-        var numbers = convertStringKeyToNumbers('CARTS');
-        expect(numbers.join(',')).toEqual('1,0,2,4,3');
-    });
-
-    it("should produce the correct numbers when perfectly ordered", function () {
-        var numbers = convertStringKeyToNumbers('ABCDE');
-        expect(numbers.join(',')).toEqual('0,1,2,3,4');
-    });
-
-    it("should produce the correct numbers when perfectly reverse ordered", function () {
-        var numbers = convertStringKeyToNumbers('EDCBA');
-        expect(numbers.join(',')).toEqual('4,3,2,1,0');
-    });
-
-    it("should produce null when there are repeats", function () {
-        var numbers = convertStringKeyToNumbers('CARAS');
-        expect(numbers).toBeNull();
-    });
-
-});
-
-describe("Column Transposition Cipher", function() {
+describe("Column Transposition Cipher with CARTS key", function() {
 
     var key = 'CARTS';
 
@@ -69,5 +45,50 @@ describe("Column Transposition Cipher", function() {
         expect(tc.decrypt('HTIISASSCEERTEMSSARR')).toEqual('THISISASECRETMESSARR');
     });
 });
+
+describe("Column Transposition Cipher with different keys", function() {
+
+    it("should do nothing when the key is alphabetical and there is a full matrix", function () {
+        var tc = createColumnTranspositionCipher('ABCDE', 'R');
+        expect(tc.encrypt('THISISASECRETMESSAGE')).toEqual('THISISASECRETMESSAGE');
+    });
+
+    it("should reverse when the key is reverse alphabetical and there is a full matrix", function () {
+        var tc = createColumnTranspositionCipher('EDCBA', 'R');
+        expect(tc.encrypt('THISISASECRETMESSAGE')).toEqual('ISIHTCESASEMTEREGASS');
+    });
+});
+
+describe("Column Transposition Cipher with HOPIS key", function() {
+
+    var key = 'HOPIS';
+
+    it("should produce the correct ciphertext when full matrix", function () {
+        var tc = createColumnTranspositionCipher(key, 'R');
+        expect(tc.encrypt('THISISASECRETMESSAGE')).toEqual('TSHIISEASCRMETESGSAE');
+    });
+
+    it("should produce the correct plaintext when full matrix", function () {
+        var tc = createColumnTranspositionCipher(key, 'R');
+        expect(tc.decrypt('TSHIISEASCRMETESGSAE')).toEqual('THISISASECRETMESSAGE');
+    });
+});
+
+describe("Column Transposition Cipher with BEACD key - all columns move", function() {
+
+    var key = 'BEACD';
+
+    it("should produce the correct ciphertext when full matrix", function () {
+        var tc = createColumnTranspositionCipher(key, 'R');
+        expect(tc.encrypt('THISISASECRETMESSAGE')).toEqual('ITSIHSSECATRMEEASGES');
+    });
+
+    it("should produce the correct plaintext when full matrix", function () {
+        var tc = createColumnTranspositionCipher(key, 'R');
+        expect(tc.decrypt('ITSIHSSECATRMEEASGES')).toEqual('THISISASECRETMESSAGE');
+    });
+});
+
+
 
 
